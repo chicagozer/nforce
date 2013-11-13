@@ -884,7 +884,10 @@ Connection.prototype.stream = function(data, oauth) {
   str = new FDCStream();
   endpoint = oauth.instance_url + '/cometd/' + this.apiVersion.substring(1);
   
-  client = new faye.Client(endpoint, {});
+  // set a timeout, retry 
+  client = new faye.Client(endpoint, {timeout: 120, 
+  		retry: 5
+  });
   client.setHeader('Authorization', 'OAuth ' + oauth.access_token);
   
   sub = client.subscribe('/topic/' + data, function(data){
