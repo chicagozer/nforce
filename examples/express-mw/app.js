@@ -1,6 +1,10 @@
-var express = require('express');
-var nforce = require('nforce');
-var app = module.exports = express.createServer();
+var nforce       = require('../../');
+var sfuser       = process.env.SFUSER;
+var sfpass       = process.env.SFPASS;
+var express      = require('express');
+var bodyParser   = require('body-parser');
+var session      = require('express-session');
+var cookieParser = require('cookie-parser');
 
 var org = nforce.createConnection({
   clientId: '3MVG9rFJvQRVOvk5nd6A4swCyck.4BFLnjFuASqNZmmxzpQSFWSTe6lWQxtF3L5soyVLfjV3yBKkjcePAsPzi',
@@ -10,25 +14,14 @@ var org = nforce.createConnection({
 
 // Configuration
 
-app.configure(function(){
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
-  app.use(express.cookieParser());
-  app.use(express.session({ secret: 'nforce testing baby' }));
-  app.use(org.expressOAuth({onSuccess: '/test/query', onError: '/oauth/error'}));
-  app.use(app.router);
-  app.use(express.static(__dirname + '/public'));
-});
-
-app.configure('development', function(){
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
-});
-
-app.configure('production', function(){
-  app.use(express.errorHandler()); 
-});
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
+app.use(express.static(__dirname + '/public'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded());
+app.use(cookieParser());
+app.use(session({ secret: 'somesecret', key: 'sid' }));
+app.use(org.expressOAuth({onSuccess: '/test/query', onError: '/oauth/error'}));
 
 // Routes
 
@@ -44,7 +37,7 @@ app.get('/oauth/authorize', function(req, res){
 
 app.get('/test/query', function(req, res) {
   var query = 'SELECT Id, Name, CreatedDate FROM Account ORDER BY CreatedDate DESC LIMIT 5';
-  org.query(query, req.session.oauth, function(err, resp) {
+  org.query({query: query, oauth: req.session.oauth}, function(err, resp) {
     if(!err) {
       res.render('query', {
         title: 'query results',
@@ -57,4 +50,4 @@ app.get('/test/query', function(req, res) {
 });
 
 app.listen(3000);
-console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
+console.log('express started');
